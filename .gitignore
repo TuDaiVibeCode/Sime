@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+worker/.venv/
+worker/venv/
+
+# Build output
+dist/
+backend/dist/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Model weights (downloaded separately, see worker/README.md)
+worker/*.pt
+worker/*.onnx
+worker/models/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+worker/.env
+worker/.env.*
+!worker/.env.example
+
+# Tooling state (per-machine)
+.claude/settings.local.json
+
+# Logs and local machine files
+.deploy-logs/
+*.log
+*.local
+.DS_Store
+Thumbs.db
+frontend/.next-codex/
+coverage/
+frontend/coverage/
+backend/coverage/
+
+.next-codex/

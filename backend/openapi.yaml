@@ -1,0 +1,521 @@
+openapi: 3.1.0
+info:
+  title: Sime Backend API
+  version: 0.1.0
+  description: >
+    API gateway for Sime vocal training, lessons, progress, analysis jobs, coaching,
+    and the Python worker bridge. Python worker HTTP endpoints live at AI_SERVICE_URL:
+    /health, /analyze-pitch, /analyze-health, /analyze-technique, /analyze-range,
+    /analyze-transposition, and /analyze-job.
+servers:
+  - url: http://localhost:4000
+security:
+  - CookieAuth: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Service and dependency status
+  /api/auth/register:
+    post:
+      summary: Register a learner
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201": { description: Registered and session cookie set }
+        "409": { description: Email already exists }
+  /api/auth/login:
+    post:
+      summary: Sign in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200": { description: Signed in and session cookie set }
+        "401": { description: Invalid credentials }
+  /api/auth/logout:
+    post:
+      summary: Clear session cookie
+      responses:
+        "204": { description: Signed out }
+  /api/auth/me:
+    get:
+      summary: Current authenticated user
+      responses:
+        "200": { description: Current user }
+        "401": { description: Authentication required }
+  /api/lessons:
+    get:
+      summary: List curriculum subjects, lectures, and lessons
+      security: []
+      responses:
+        "200": { description: Subjects with nested lectures and lessons, plus a tracks compatibility alias }
+  /api/lessons/{id}:
+    get:
+      summary: Get one lesson with subject and lecture context
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/LessonId"
+      responses:
+        "200": { description: Lesson with subjectId, lectureId, and trackId compatibility alias }
+        "404": { description: Lesson not found }
+  /api/progress:
+    get:
+      summary: List current user's progress logs
+      responses:
+        "200": { description: Progress list }
+    post:
+      summary: Create a progress log
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressInput"
+      responses:
+        "201": { description: Progress created }
+  /api/voice-profiles:
+    get:
+      summary: List current user's voice profiles
+      responses:
+        "200": { description: Voice profile list }
+    post:
+      summary: Create a voice profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceProfileInput"
+      responses:
+        "201": { description: Voice profile created }
+  /api/voice-profiles/latest:
+    get:
+      summary: Get latest current-user voice profile
+      responses:
+        "200": { description: Latest voice profile or null }
+  /api/voice-profiles/{id}/embeddings:
+    post:
+      summary: Store a pgvector voice embedding for one owned profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceEmbeddingInput"
+      responses:
+        "201": { description: Embedding stored }
+        "404": { description: Voice profile not found }
+  /api/voice-profiles/embeddings/search:
+    post:
+      summary: Search current user's voice embeddings by cosine similarity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceEmbeddingSearchInput"
+      responses:
+        "200": { description: Similar embedding matches }
+        "503": { description: pgvector is not available }
+  /api/analysis/range:
+    post:
+      summary: Analyze stable vocal range from note samples
+      security: []
+      responses:
+        "200": { description: Range analysis }
+        "422": { description: Not enough stable notes }
+  /api/analysis/transpose:
+    post:
+      summary: Calculate smart key transposition
+      security: []
+      responses:
+        "200": { description: Transposition result }
+  /api/analysis/health:
+    post:
+      summary: Validate vocal health metrics against EduX thresholds
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthAnalysisInput"
+      responses:
+        "200": { description: Health threshold result }
+        "400": { description: Invalid health payload }
+  /api/analysis/technique:
+    post:
+      summary: Validate pitch, passaggio, vibrato, and singer-formant thresholds
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TechniqueAnalysisInput"
+      responses:
+        "200": { description: Technique threshold result }
+        "400": { description: Invalid technique payload }
+  /api/analysis/coach-payload:
+    post:
+      summary: Build compact Gemini-ready coaching payload
+      security: []
+      responses:
+        "200": { description: Coaching payload }
+  /api/analysis/coach:
+    post:
+      summary: Generate authenticated Gemini coaching text
+      responses:
+        "200": { description: Coaching text }
+  /api/practice-sessions:
+    get:
+      summary: List current user's persisted practice sessions
+      responses:
+        "200": { description: Practice sessions with nested health metrics }
+        "401": { description: Authentication required }
+    post:
+      summary: Store a completed practice session and optional vocal health metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PracticeSessionInput"
+      responses:
+        "201": { description: Practice session stored }
+        "400": { description: Invalid practice session payload }
+        "401": { description: Authentication required }
+  /api/analysis/jobs:
+    post:
+      summary: Create an analysis job and dispatch to Redis if available
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisJobInput"
+      responses:
+        "202": { description: Job stored and dispatch attempted }
+  /api/analysis/jobs/{id}:
+    get:
+      summary: Get an analysis job owned by the current user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Job }
+        "404": { description: Job not found }
+  /api/workers/analysis-jobs/{id}:
+    patch:
+      summary: Worker callback to update an analysis job result
+      security:
+        - WorkerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerJobUpdate"
+      responses:
+        "200": { description: Job updated; succeeded jobs may include a persisted practiceSession }
+        "401": { description: Worker authentication required }
+        "404": { description: Analysis job not found }
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: sime_session
+    WorkerToken:
+      type: http
+      scheme: bearer
+  parameters:
+    LessonId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 64 }
+  schemas:
+    RegisterInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 200 }
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 200 }
+    ProgressInput:
+      type: object
+      required: [status]
+      properties:
+        lessonId: { type: string, maxLength: 64 }
+        status: { type: string, enum: [started, completed, skipped] }
+        score: { type: number, minimum: 0, maximum: 100 }
+        analysisSummary: { type: object }
+    VoiceProfileInput:
+      type: object
+      required: [voiceType, voiceColor, lowestNote, highestNote, rangeSemitones, roadmapStage]
+      properties:
+        voiceType: { type: string, maxLength: 80 }
+        voiceColor: { type: string, maxLength: 120 }
+        lowestNote: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+        highestNote: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+        rangeSemitones: { type: integer, minimum: 0, maximum: 72 }
+        passaggioHint: { type: string, maxLength: 160 }
+        roadmapStage: { type: string, enum: [beginner, intermediate, advanced] }
+        metrics: { type: object }
+    VoiceEmbeddingInput:
+      type: object
+      required: [embedding]
+      properties:
+        embedding:
+          type: array
+          minItems: 1536
+          maxItems: 1536
+          items: { type: number, minimum: -1000, maximum: 1000 }
+        embeddingKind:
+          type: string
+          pattern: "^[a-z0-9_-]+$"
+          maxLength: 40
+          default: voice_profile
+        source:
+          type: string
+          minLength: 1
+          maxLength: 80
+          default: python_ai_worker
+    VoiceEmbeddingSearchInput:
+      type: object
+      required: [embedding]
+      properties:
+        embedding:
+          type: array
+          minItems: 1536
+          maxItems: 1536
+          items: { type: number, minimum: -1000, maximum: 1000 }
+        limit: { type: integer, minimum: 1, maximum: 10, default: 5 }
+    RangeAnalysisInput:
+      type: object
+      required: [notes]
+      properties:
+        singerGroup: { type: string, enum: [male, female, unknown], default: unknown }
+        minDurationMs: { type: integer, minimum: 100, maximum: 5000, default: 300 }
+        minConfidence: { type: number, minimum: 0, maximum: 1, default: 0.6 }
+        notes:
+          type: array
+          minItems: 2
+          maxItems: 256
+          items:
+            type: object
+            required: [note, durationMs]
+            properties:
+              note: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+              durationMs: { type: integer, minimum: 1, maximum: 60000 }
+              confidence: { type: number, minimum: 0, maximum: 1, default: 1 }
+    TranspositionInput:
+      type: object
+      required: [voiceRange, songRange]
+      properties:
+        voiceRange: { $ref: "#/components/schemas/NoteRange" }
+        songRange:
+          allOf:
+            - $ref: "#/components/schemas/NoteRange"
+            - type: object
+              properties:
+                tessituraLow: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+                tessituraHigh: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+        maxShiftSemitones: { type: integer, minimum: 0, maximum: 4, default: 4 }
+        includesGuideVocal: { type: boolean, default: false }
+    NoteRange:
+      type: object
+      required: [low, high]
+      properties:
+        low: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+        high: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+    HealthAnalysisInput:
+      type: object
+      required: [metrics]
+      properties:
+        exerciseName: { type: string, minLength: 1, maxLength: 120 }
+        metrics:
+          type: object
+          properties:
+            jitterPct: { type: number, minimum: 0, maximum: 100 }
+            shimmerPct: { type: number, minimum: 0, maximum: 100 }
+            hnrDb: { type: number, minimum: -20, maximum: 80 }
+            cppsDb: { type: number, minimum: 0, maximum: 40 }
+            pitchStability: { type: number, minimum: 0, maximum: 100 }
+            levelStability: { type: number, minimum: 0, maximum: 100 }
+    TechniqueAnalysisInput:
+      type: object
+      properties:
+        exerciseName: { type: string, minLength: 1, maxLength: 120 }
+        pitch:
+          type: object
+          properties:
+            deviationCents: { type: number, minimum: -1200, maximum: 1200 }
+        passaggio:
+          type: object
+          properties:
+            voiceBreaks: { type: integer, minimum: 0, maximum: 100 }
+            breakNote: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+        vibrato:
+          type: object
+          properties:
+            rateHz: { type: number, minimum: 0, maximum: 20 }
+            extentCents: { type: number, minimum: 0, maximum: 300 }
+        singerFormant:
+          type: object
+          properties:
+            peakFreqHz: { type: number, minimum: 0, maximum: 8000 }
+            peakDbfs: { type: number, minimum: -120, maximum: 20 }
+            sprDb: { type: number, minimum: -120, maximum: 120 }
+    PracticeSessionInput:
+      type: object
+      properties:
+        lessonId: { type: string, maxLength: 64 }
+        analysisJobId: { type: string, format: uuid }
+        audioFileUrl: { type: string, maxLength: 2048 }
+        score: { type: number, minimum: 0, maximum: 100 }
+        geminiFeedback: { type: string, maxLength: 4000 }
+        status: { type: string, enum: [started, completed, needs_retry] }
+        healthMetrics:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            properties:
+              avgPitchHz: { type: number, minimum: 20, maximum: 5000 }
+              jitterPct: { type: number, minimum: 0, maximum: 100 }
+              shimmerPct: { type: number, minimum: 0, maximum: 100 }
+              hnrDb: { type: number, minimum: -20, maximum: 80 }
+              cppsDb: { type: number, minimum: 0, maximum: 40 }
+              voiceBreaks: { type: integer, minimum: 0, maximum: 100 }
+              vibratoRateHz: { type: number, minimum: 0, maximum: 20 }
+              vibratoExtentCents: { type: number, minimum: 0, maximum: 300 }
+              singerFormantPeakHz: { type: number, minimum: 20, maximum: 12000 }
+              singerFormantPeakDbfs: { type: number, minimum: -120, maximum: 20 }
+              sprDb: { type: number, minimum: -80, maximum: 80 }
+              rawMetrics: { type: object }
+    AnalysisJobInput:
+      type: object
+      required: [jobType, requestPayload]
+      properties:
+        jobType:
+          type: string
+          enum: [swiftf0, rmvpe, crepe, range, transposition, coach_payload, health, technique]
+        requestPayload:
+          oneOf:
+            - $ref: "#/components/schemas/PitchJobPayload"
+            - $ref: "#/components/schemas/AudioJobPayload"
+            - $ref: "#/components/schemas/HealthAnalysisInput"
+            - $ref: "#/components/schemas/TechniqueAnalysisInput"
+            - $ref: "#/components/schemas/RangeJobPayload"
+            - $ref: "#/components/schemas/TranspositionJobPayload"
+            - $ref: "#/components/schemas/CoachingPayloadInput"
+    PitchJobPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        lessonId: { type: string, minLength: 1, maxLength: 64 }
+        audioFileUrl: { type: string, format: uri, maxLength: 2048 }
+        exerciseName: { type: string, minLength: 1, maxLength: 120 }
+        sampleRate: { type: integer, minimum: 8000, maximum: 48000 }
+        frameCount: { type: integer, minimum: 128, maximum: 1000000 }
+        audioBase64:
+          type: string
+          minLength: 1
+          maxLength: 786432
+          pattern: "^[A-Za-z0-9+/]+={0,2}$"
+        model: { type: string, enum: [swiftf0, rmvpe, crepe] }
+    AudioJobPayload:
+      type: object
+      required: [sampleRate, audioBase64]
+      additionalProperties: false
+      properties:
+        lessonId: { type: string, minLength: 1, maxLength: 64 }
+        audioFileUrl: { type: string, format: uri, maxLength: 2048 }
+        exerciseName: { type: string, minLength: 1, maxLength: 120 }
+        sampleRate: { type: integer, minimum: 8000, maximum: 48000 }
+        audioBase64:
+          type: string
+          minLength: 1
+          maxLength: 786432
+          pattern: "^[A-Za-z0-9+/]+={0,2}$"
+        model: { type: string, enum: [swiftf0, rmvpe, crepe] }
+        thresholds: { type: object }
+    RangeJobPayload:
+      allOf:
+        - $ref: "#/components/schemas/RangeAnalysisInput"
+    TranspositionJobPayload:
+      allOf:
+        - $ref: "#/components/schemas/TranspositionInput"
+    CoachingPayloadInput:
+      type: object
+      required: [voiceType, voiceColor, range, songKeyShift, metrics]
+      properties:
+        userId: { type: string, maxLength: 64 }
+        voiceType: { type: string, minLength: 1, maxLength: 80 }
+        voiceColor: { type: string, minLength: 1, maxLength: 80 }
+        range:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items: { type: string, pattern: "^[A-G](#|b)?-?\\d$" }
+        songKeyShift: { type: string, minLength: 1, maxLength: 40 }
+        metrics:
+          type: object
+          required: [rpa, vStab, avqi, cpps]
+          properties:
+            rpa: { type: number, minimum: 0, maximum: 100 }
+            vStab: { type: number, minimum: 0, maximum: 1 }
+            avqi: { type: number, minimum: 0, maximum: 10 }
+            cpps: { type: number, minimum: 0, maximum: 40 }
+        errorLog:
+          type: array
+          maxItems: 20
+          items: { type: object }
+        context: { type: string, maxLength: 1000 }
+    WorkerJobUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [running, succeeded, failed] }
+        resultPayload: { type: object }
+        errorMessage: { type: string, minLength: 1, maxLength: 1000 }
+
+
+
+
+
+
+

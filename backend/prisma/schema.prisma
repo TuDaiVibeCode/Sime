@@ -1,0 +1,197 @@
+// Sime backend data model. Mirrors the tables created by the original SQL
+// migrations (db/migrations/*.sql), now managed through Prisma.
+//
+// pgcrypto (gen_random_uuid) and pgvector (the vector type + HNSW index on
+// voice_embeddings.embedding_vector) are installed by migration and live in the
+// database. The vector column is exposed to Prisma as Unsupported, so reads and
+// writes that touch it go through $queryRaw in repositories/voiceEmbeddings.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String
+  passwordHash String?  @map("password_hash")
+  displayName  String?  @map("display_name")
+  role         String   @default("learner")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  voiceProfiles    VoiceProfile[]
+  progressLogs     ProgressLog[]
+  analysisJobs     AnalysisJob[]
+  practiceSessions PracticeSession[]
+
+  @@map("app_users")
+}
+
+model LessonTrack {
+  id        String @id
+  name      String
+  summary   String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  lectures LessonLecture[]
+  lessons  Lesson[]
+
+  @@map("lesson_tracks")
+}
+
+model LessonLecture {
+  id        String   @id
+  trackId   String   @map("track_id")
+  title     String
+  summary   String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  track   LessonTrack @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  lessons Lesson[]
+
+  @@index([trackId, sortOrder])
+  @@map("lesson_lectures")
+}
+
+model Lesson {
+  id            String   @id
+  trackId       String   @map("track_id")
+  lectureId     String   @map("lecture_id")
+  title         String
+  durationMin   Int      @map("duration_min")
+  weekNumber    Int?     @map("week_number")
+  targetMetrics Json     @default("{}") @map("target_metrics")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  track            LessonTrack       @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  lecture          LessonLecture     @relation(fields: [lectureId], references: [id], onDelete: Restrict)
+  progressLogs     ProgressLog[]
+  practiceSessions PracticeSession[]
+
+  @@index([trackId, sortOrder])
+  @@index([lectureId, sortOrder])
+  @@map("lessons")
+}
+
+model VoiceProfile {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  voiceType      String   @map("voice_type")
+  voiceColor     String   @map("voice_color")
+  lowestNote     String   @map("lowest_note")
+  highestNote    String   @map("highest_note")
+  rangeSemitones Int      @map("range_semitones")
+  passaggioHint  String?  @map("passaggio_hint")
+  roadmapStage   String   @map("roadmap_stage")
+  metrics        Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  embeddings VoiceEmbedding[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("voice_profiles")
+}
+
+model VoiceEmbedding {
+  id              String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId       String                       @map("profile_id") @db.Uuid
+  embedding       Float[]                      @db.Real
+  embeddingKind   String                       @default("voice_profile") @map("embedding_kind")
+  source          String                       @default("python_ai_worker")
+  createdAt       DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  // pgvector column. Prisma cannot operate on it directly; see voiceEmbeddings.ts raw queries.
+  embeddingVector Unsupported("vector(1536)")? @map("embedding_vector")
+
+  profile VoiceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("voice_embeddings")
+}
+
+model ProgressLog {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  lessonId        String?  @map("lesson_id")
+  status          String
+  score           Decimal? @db.Decimal(5, 2)
+  analysisSummary Json     @default("{}") @map("analysis_summary")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([lessonId])
+  @@map("progress_logs")
+}
+
+model PracticeSession {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  lessonId       String?  @map("lesson_id")
+  analysisJobId  String?  @unique @map("analysis_job_id") @db.Uuid
+  audioFileUrl   String?  @map("audio_file_url")
+  score          Decimal? @db.Decimal(5, 2)
+  geminiFeedback String?  @map("gemini_feedback")
+  status         String   @default("completed")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson?             @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  analysisJob   AnalysisJob?        @relation(fields: [analysisJobId], references: [id], onDelete: SetNull)
+  healthMetrics VocalHealthMetric[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([lessonId])
+  @@map("practice_sessions")
+}
+
+model VocalHealthMetric {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId             String   @map("session_id") @db.Uuid
+  avgPitchHz            Decimal? @map("avg_pitch_hz") @db.Decimal(9, 3)
+  jitterPct             Decimal? @map("jitter_pct") @db.Decimal(7, 4)
+  shimmerPct            Decimal? @map("shimmer_pct") @db.Decimal(7, 4)
+  hnrDb                 Decimal? @map("hnr_db") @db.Decimal(7, 3)
+  cppsDb                Decimal? @map("cpps_db") @db.Decimal(7, 3)
+  pitchStability        Decimal? @map("pitch_stability") @db.Decimal(5, 2)
+  levelStability        Decimal? @map("level_stability") @db.Decimal(5, 2)
+  voiceBreaks           Int?     @map("voice_breaks")
+  vibratoRateHz         Decimal? @map("vibrato_rate_hz") @db.Decimal(6, 3)
+  vibratoExtentCents    Decimal? @map("vibrato_extent_cents") @db.Decimal(7, 3)
+  singerFormantPeakHz   Decimal? @map("singer_formant_peak_hz") @db.Decimal(9, 3)
+  singerFormantPeakDbfs Decimal? @map("singer_formant_peak_dbfs") @db.Decimal(7, 3)
+  sprDb                 Decimal? @map("spr_db") @db.Decimal(7, 3)
+  rawMetrics            Json     @default("{}") @map("raw_metrics")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  session PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt(sort: Desc)])
+  @@map("vocal_health_metrics")
+}
+
+model AnalysisJob {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  jobType        String   @map("job_type")
+  status         String   @default("queued")
+  requestPayload Json     @map("request_payload")
+  resultPayload  Json?    @map("result_payload")
+  errorMessage   String?  @map("error_message")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  practiceSession PracticeSession?
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("analysis_jobs")
+}

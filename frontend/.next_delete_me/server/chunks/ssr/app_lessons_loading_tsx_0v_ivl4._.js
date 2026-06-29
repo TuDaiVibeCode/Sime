@@ -1,0 +1,3 @@
+module.exports=[46610,a=>{"use strict";var b=a.i(7997),c=a.i(42630);a.s(["default",0,function(){return(0,b.jsxs)(c.Container,{className:"py-24",children:[(0,b.jsx)("div",{className:"h-9 w-72 animate-pulse rounded-lg bg-surface2"}),(0,b.jsx)("div",{className:"mt-10 space-y-10",children:[0,1,2].map(a=>(0,b.jsxs)("div",{children:[(0,b.jsx)("div",{className:"mb-5 h-6 w-40 animate-pulse rounded bg-surface2"}),(0,b.jsx)("div",{className:"grid gap-3 sm:grid-cols-2",children:[0,1,2,3].map(a=>(0,b.jsx)("div",{className:"h-[68px] animate-pulse rounded-xl bg-surface"},a))})]},a))})]})}])},54389,a=>{a.n(a.i(46610))}];
+
+//# sourceMappingURL=app_lessons_loading_tsx_0v_ivl4._.js.map

@@ -1,0 +1,138 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: '22'
+  PYTHON_VERSION: '3.12'
+  DATABASE_URL: postgresql://app_backend:sime_dev_password@localhost:5432/sime_db?schema=public
+  REDIS_URL: redis://localhost:6379
+  JWT_SECRET: ci-jwt-secret-that-is-long-enough-123456
+  WORKER_SHARED_SECRET: ci-worker-secret-that-is-long-enough-123456
+
+jobs:
+  frontend:
+    name: Frontend typecheck and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          NEXT_DIST_DIR: .next-ci
+          BACKEND_URL: http://localhost:4000
+          NEXT_PUBLIC_BACKEND_WS_URL: ws://localhost:4000
+
+  backend:
+    name: Backend build and smoke tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: app_backend
+          POSTGRES_PASSWORD: sime_dev_password
+          POSTGRES_DB: sime_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app_backend -d sime_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run prisma:migrate
+      - run: npm run db:seed
+      - run: npm test
+
+  worker:
+    name: Worker API smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r worker/requirements.txt pytest
+      - run: python -m pytest worker/test_api_smoke.py
+
+  docker-build:
+    name: Docker Compose config and image builds
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, worker]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: docker compose config
+      - run: docker build ./backend --tag sime-backend:ci
+      - run: docker build ./frontend --tag sime-frontend:ci --build-arg NEXT_PUBLIC_BACKEND_WS_URL=ws://localhost:4000
+      - run: docker build ./worker --tag sime-worker:ci
+
+  publish-images:
+    name: Publish Docker images to GHCR
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push images
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          tag="${GITHUB_SHA}"
+          docker buildx build --push ./backend \
+            --tag "ghcr.io/${repo}/backend:${tag}" \
+            --tag "ghcr.io/${repo}/backend:latest"
+          docker buildx build --push ./frontend \
+            --build-arg NEXT_PUBLIC_BACKEND_WS_URL=ws://localhost:4000 \
+            --tag "ghcr.io/${repo}/frontend:${tag}" \
+            --tag "ghcr.io/${repo}/frontend:latest"
+          docker buildx build --push ./worker \
+            --tag "ghcr.io/${repo}/worker:${tag}" \
+            --tag "ghcr.io/${repo}/worker:latest"

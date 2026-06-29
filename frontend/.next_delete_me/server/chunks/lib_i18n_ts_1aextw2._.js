@@ -1,0 +1,3 @@
+module.exports=[43074,e=>{"use strict";let t=["en","vi"];function r(e){return"string"==typeof e&&t.includes(e)}e.s(["LOCALE_COOKIE",0,"sime_locale","isLocale",0,r,"pickLocaleFromAcceptLanguage",0,function(e){if(!e)return"en";for(let t of e.split(",")){let e=function(e){if(r(e))return e;if("string"==typeof e){let t=e.toLowerCase().split(/[-_]/)[0];if(r(t))return t}return"en"}(t.trim().split(";")[0]);if("en"!==e||t.toLowerCase().startsWith("en"))return e}return"en"}])}];
+
+//# sourceMappingURL=lib_i18n_ts_1aextw2._.js.map

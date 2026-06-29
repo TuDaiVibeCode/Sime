@@ -1,0 +1,26 @@
+# Core (CPU, always needed). pYIN runs here, no GPU required.
+redis>=5.0
+requests>=2.31
+numpy>=1.24
+librosa>=0.10
+scipy>=1.10
+soundfile>=0.12
+python-dotenv>=1.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# SwiftF0 neural F0 (ONNX, CPU, ~95k params, ~40x faster than CREPE). This is the
+# default model the live Practice frames request; the worker falls back to pYIN if
+# it is missing or errors.
+swift-f0>=0.1
+
+# Optional: CREPE pitch on your GPU (RTX 5060). Install separately, not pinned here:
+#   1) Install a CUDA build of torch from https://pytorch.org (pick your CUDA version)
+#   2) pip install torchcrepe
+# Then set PITCH_MODEL=crepe in worker/.env.
+#
+# Optional: RMVPE (robust polyphonic vocal pitch). Needs torch + the `rmvpe`
+# package and a downloaded rmvpe.pt; set RMVPE_MODEL_PATH in worker/.env. Falls
+# back to pYIN without the weights. See README.
+
+

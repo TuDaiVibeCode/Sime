@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.pt
+*.onnx
+models/
+*.log
+.pytest_cache/
+.ruff_cache/

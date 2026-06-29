@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sime - AI vocal coaching that helps you sing like the pros</title>
+  <meta name="description" content="Personal AI vocal coaching that hears every note, maps your range, and turns daily practice into measurable progress. For every voice, beginner to pro." />
+  <meta name="theme-color" content="#0C0B0E" />
+  <link rel="canonical" href="https://sime.app/" />
+
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Sime - sing like you mean it" />
+  <meta property="og:description" content="AI vocal coaching that listens to every note and turns practice into real progress." />
+  <meta property="og:image" content="https://picsum.photos/seed/sime-stage-microphone/1200/630" />
+  <meta property="og:url" content="https://sime.app/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Sime - sing like you mean it" />
+  <meta name="twitter:description" content="AI vocal coaching that listens to every note and turns practice into real progress." />
+  <meta name="twitter:image" content="https://picsum.photos/seed/sime-stage-microphone/1200/630" />
+
+  <!-- Favicon: simple inline spotlight mark -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230C0B0E'/%3E%3Cpath d='M7 16h2.5l2-7 3 14 2.5-9 1.8 5H25' fill='none' stroke='%23FFB84D' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+  <!-- Font: Sora, swap, perf-conscious -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Icons: Phosphor (official library, not hand-rolled) -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Sime",
+    "applicationCategory": "EducationApplication",
+    "operatingSystem": "Web",
+    "description": "Personal AI vocal coaching that analyzes pitch, range, timing and tone in real time and builds a personalized plan for every voice.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav" id="top">
+    <div class="container nav__inner">
+      <a class="brand" href="#top" aria-label="Sime home">
+        <svg class="brand__mark" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+          <rect width="32" height="32" rx="9" fill="var(--accent)" />
+          <path d="M6 16h3l2.2-8 3.2 16 2.6-10 2 6H26" fill="none" stroke="#1A1206" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="brand__name">Sime</span>
+      </a>
+
+      <nav class="nav__links" id="primary-nav" aria-label="Primary">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#lessons">Lessons</a>
+        <a href="#pricing">Free</a>
+      </nav>
+
+      <div class="nav__actions">
+        <label class="lang" aria-label="Language">
+          <i class="ph ph-translate" aria-hidden="true"></i>
+          <select id="localeSelect">
+            <option value="en">EN</option>
+            <option value="vi">VI</option>
+          </select>
+        </label>
+        <a class="btn btn--ghost nav__signin" href="#start">Sign in</a>
+        <a class="btn btn--primary" href="#start">Start free <span class="btn__icon" aria-hidden="true"><i class="ph ph-arrow-up-right"></i></span></a>
+        <button class="nav__toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">
+          <i class="ph ph-list" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="container hero__grid">
+        <div class="hero__copy reveal">
+          <p class="eyebrow">AI vocal coach</p>
+          <h1 class="hero__title" id="hero-title">Sing like<br />you mean it.</h1>
+          <p class="hero__sub">Personal AI vocal coaching that hears every note, maps your range, and turns daily practice into real, measurable progress.</p>
+          <div class="hero__cta">
+            <a class="btn btn--primary btn--lg" href="#start">Start free <span class="btn__icon" aria-hidden="true"><i class="ph ph-arrow-up-right"></i></span></a>
+            <a class="btn btn--line btn--lg" href="#how">
+              <i class="ph ph-play-circle" aria-hidden="true"></i> Hear it in action
+            </a>
+          </div>
+        </div>
+
+        <!-- Live demo: real animated canvas preview of the core product, not a fake screenshot -->
+        <div class="hero__stage reveal" aria-hidden="true">
+          <div class="stage__panel">
+            <div class="stage__inner">
+              <div class="stage__top">
+                <span class="stage__label">Live session</span>
+                <span class="stage__lesson">Lesson 04 · Sustained tone</span>
+              </div>
+              <canvas class="stage__wave" id="heroWave" width="560" height="220"></canvas>
+              <div class="stage__readout">
+                <div class="readout">
+                  <span class="readout__note" id="pitchNote">A4</span>
+                  <span class="readout__cents" id="pitchCents">+4 cents</span>
+                </div>
+                <div class="readout__status" id="pitchStatus">
+                  <span class="dot" id="pitchDot"></span>
+                  <span id="pitchLabel">In tune</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- One marquee per page: genres supported -->
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track" id="genreTrack">
+          <span>Pop</span><span>Jazz</span><span>R&amp;B</span><span>Soul</span><span>Musical theater</span><span>Classical</span><span>Rock</span><span>Gospel</span><span>Indie</span><span>Country</span>
+          <span>Pop</span><span>Jazz</span><span>R&amp;B</span><span>Soul</span><span>Musical theater</span><span>Classical</span><span>Rock</span><span>Gospel</span><span>Indie</span><span>Country</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="how" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <h2 class="section__title" id="how-title">Three steps, every session.</h2>
+        <p class="section__lead">No setup, no gear, no theory homework. Open the app and sing.</p>
+
+        <ol class="steps">
+          <li class="step reveal">
+            <span class="step__icon"><i class="ph ph-microphone-stage" aria-hidden="true"></i></span>
+            <h3>Sing</h3>
+            <p>Pick a lesson and sing into your mic. Sime starts listening the moment you do.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step__icon"><i class="ph ph-waveform" aria-hidden="true"></i></span>
+            <h3>See</h3>
+            <p>Watch pitch, timing, and tone break down live, note by note, as you hold each phrase.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step__icon"><i class="ph ph-trend-up" aria-hidden="true"></i></span>
+            <h3>Improve</h3>
+            <p>Get targeted drills that fix the exact thing holding your voice back, then track the gain.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES (BENTO) ============ -->
+    <section class="features" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <p class="eyebrow">What Sime does</p>
+        <h2 class="section__title" id="features-title">A coach that actually listens.</h2>
+
+        <div class="bento">
+          <article class="cell cell--feedback reveal">
+            <div class="cell__body">
+              <h3>Real-time feedback</h3>
+              <p>Pitch, timing, breath, and tone, analyzed as you sing. The same notes a great teacher would catch, every single take.</p>
+            </div>
+            <canvas class="cell__wave" id="cellWave" width="520" height="150" aria-hidden="true"></canvas>
+          </article>
+
+          <article class="cell cell--range reveal">
+            <h3>Find your true range</h3>
+            <p>Sime maps your lowest comfortable note to your highest and tracks how it grows.</p>
+            <canvas class="cell__range" id="cellRange" width="300" height="120" aria-hidden="true"></canvas>
+          </article>
+
+          <article class="cell cell--lessons reveal">
+            <h3>Guided curriculum</h3>
+            <ul class="minilist">
+              <li><i class="ph ph-check-circle" aria-hidden="true"></i> Breath support</li>
+              <li><i class="ph ph-check-circle" aria-hidden="true"></i> Mixed voice</li>
+              <li><i class="ph ph-check-circle" aria-hidden="true"></i> Belting safely</li>
+            </ul>
+          </article>
+
+          <article class="cell cell--photo reveal">
+            <img src="https://picsum.photos/seed/sime-singer-studio/720/520" width="720" height="520" loading="lazy" alt="A vocalist practicing with headphones at a home studio microphone." />
+            <div class="cell__overlay">
+              <h3>Built around your voice</h3>
+              <p>Your plan adapts to your tone, goals, and the genres you love.</p>
+            </div>
+          </article>
+
+          <article class="cell cell--warm reveal">
+            <span class="cell__icon"><i class="ph ph-fire" aria-hidden="true"></i></span>
+            <h3>Warm-ups that adapt</h3>
+            <p>Daily routines that scale with your voice and protect it from strain.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RANGE / SPLIT ============ -->
+    <section class="range" id="range" aria-labelledby="range-title">
+      <div class="container range__grid">
+        <div class="range__copy reveal">
+          <h2 class="section__title" id="range-title">See your voice on a map.</h2>
+          <p class="section__lead">Every session plots where your voice is comfortable, where it strains, and where it is quietly getting stronger. Watch your range stretch week over week instead of guessing.</p>
+          <ul class="ticks">
+            <li><i class="ph ph-arrows-out-line-vertical" aria-hidden="true"></i> Full range from your lowest to highest usable note</li>
+            <li><i class="ph ph-target" aria-hidden="true"></i> Your comfortable zone, so you train smart, not sore</li>
+            <li><i class="ph ph-chart-line-up" aria-hidden="true"></i> Progress history you can actually feel proud of</li>
+          </ul>
+        </div>
+        <div class="range__viz reveal">
+          <canvas id="rangeMap" width="520" height="320" aria-label="A visualization of a singer's vocal range across a keyboard, highlighting the comfortable zone."></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LESSONS (ACCORDION) ============ -->
+    <section class="lessons" id="lessons" aria-labelledby="lessons-title">
+      <div class="container">
+        <h2 class="section__title" id="lessons-title">A real curriculum, not a playlist.</h2>
+        <p class="section__lead">Structured tracks built on proven vocal pedagogy, from your first clear note to the stage.</p>
+
+        <div class="accordion" id="accordion">
+          <div class="acc">
+            <button class="acc__head" aria-expanded="true">
+              <span><strong>Foundations</strong> The base every voice needs</span>
+              <i class="ph ph-caret-down acc__caret" aria-hidden="true"></i>
+            </button>
+            <div class="acc__body">
+              <ul>
+                <li>Breath support and control</li>
+                <li>Posture and alignment</li>
+                <li>Pitch matching and ear training</li>
+                <li>Resonance basics</li>
+              </ul>
+            </div>
+          </div>
+          <div class="acc">
+            <button class="acc__head" aria-expanded="false">
+              <span><strong>Technique</strong> Build power and flexibility</span>
+              <i class="ph ph-caret-down acc__caret" aria-hidden="true"></i>
+            </button>
+            <div class="acc__body">
+              <ul>
+                <li>Mixed voice and bridging registers</li>
+                <li>Belting without strain</li>
+                <li>Vibrato control</li>
+                <li>Agility and runs</li>
+              </ul>
+            </div>
+          </div>
+          <div class="acc">
+            <button class="acc__head" aria-expanded="false">
+              <span><strong>Performance</strong> Turn technique into music</span>
+              <i class="ph ph-caret-down acc__caret" aria-hidden="true"></i>
+            </button>
+            <div class="acc__body">
+              <ul>
+                <li>Phrasing and dynamics</li>
+                <li>Stage presence and nerves</li>
+                <li>Microphone technique</li>
+                <li>Song interpretation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TESTIMONIALS ============ -->
+    <section class="voices" aria-labelledby="voices-title">
+      <div class="container">
+        <h2 class="section__title" id="voices-title">Singers who stopped guessing.</h2>
+        <div class="quotes">
+          <figure class="quote reveal">
+            <blockquote>Six weeks in, I can finally hold the high notes in my own songs without straining. The live feedback is like having a coach in the room.</blockquote>
+            <figcaption>Mariana Alves <span>Indie songwriter</span></figcaption>
+          </figure>
+          <figure class="quote reveal">
+            <blockquote>I book more gigs now. Sime found the cracks in my mix voice and gave me drills that actually fixed them.</blockquote>
+            <figcaption>Devon Brooks <span>Wedding and event singer</span></figcaption>
+          </figure>
+          <figure class="quote reveal">
+            <blockquote>I send my whole section here for warm-ups. Everyone shows up to rehearsal more confident than before.</blockquote>
+            <figcaption>Yuki Tanaka <span>Community choir lead</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FREE ACCESS ============ -->
+    <section class="pricing" id="pricing" aria-labelledby="pricing-title">
+      <div class="container">
+        <p class="eyebrow">Free access</p>
+        <h2 class="section__title" id="pricing-title">Every feature. Free, right now.</h2>
+        <p class="section__lead">No card, no trial timer, no locked lessons. The full curriculum and every bit of AI feedback are open to everyone while we grow.</p>
+
+        <div class="free">
+          <article class="free__panel reveal">
+            <div class="free__inner">
+              <p class="free__price"><strong>$0</strong><span>for everyone</span></p>
+              <ul class="free__list">
+                <li><i class="ph ph-check" aria-hidden="true"></i> Full guided curriculum, unlimited sessions</li>
+                <li><i class="ph ph-check" aria-hidden="true"></i> Real-time pitch, timing, and tone feedback</li>
+                <li><i class="ph ph-check" aria-hidden="true"></i> Vocal range tracking and history</li>
+                <li><i class="ph ph-check" aria-hidden="true"></i> Daily warm-ups that adapt to your voice</li>
+                <li><i class="ph ph-check" aria-hidden="true"></i> A plan personalized to your goals</li>
+              </ul>
+              <a class="btn btn--primary btn--lg" href="#start">Start free <span class="btn__icon" aria-hidden="true"><i class="ph ph-arrow-up-right"></i></span></a>
+              <p class="free__note">No payment and no credit card required.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section class="cta" id="start" aria-labelledby="cta-title">
+      <div class="cta__glow" aria-hidden="true"></div>
+      <div class="container cta__inner">
+        <h2 class="cta__title" id="cta-title">Step into the spotlight.</h2>
+        <p class="cta__sub">Create your free account and sing your first guided lesson in under two minutes.</p>
+        <form class="cta__form" id="signupForm" novalidate>
+          <label class="cta__label" for="email">Email address</label>
+          <div class="cta__row">
+            <input class="cta__input" type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required />
+            <button class="btn btn--primary btn--lg" type="submit">Start free <span class="btn__icon" aria-hidden="true"><i class="ph ph-arrow-up-right"></i></span></button>
+          </div>
+          <p class="cta__msg" id="formMsg" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div class="footer__brand">
+        <a class="brand" href="#top" aria-label="Sime home">
+          <svg class="brand__mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+            <rect width="32" height="32" rx="9" fill="var(--accent)" />
+            <path d="M6 16h3l2.2-8 3.2 16 2.6-10 2 6H26" fill="none" stroke="#1A1206" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="brand__name">Sime</span>
+        </a>
+        <p class="footer__blurb">AI vocal coaching for every voice, from your first clear note to the stage.</p>
+      </div>
+      <nav class="footer__col" aria-label="Product">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#lessons">Lessons</a>
+        <a href="#pricing">Free</a>
+      </nav>
+      <nav class="footer__col" aria-label="Company">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Blog</a>
+        <a href="#">Contact</a>
+      </nav>
+      <nav class="footer__col" aria-label="Legal">
+        <h4>Legal</h4>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </nav>
+    </div>
+    <div class="container footer__base">
+      <span>&copy; 2026 Sime. Sing like you mean it.</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,594 @@
+/**
+ * Study library: the vocal-science and pedagogy reference, distilled into
+ * teachable English from vocal_docs.md (the project's vocal-science source) and
+ * PLANS.md (the system architecture).
+ *
+ * Honesty rule (project-wide): Sime's live analysis measures pitch only (note +
+ * cents). That now runs in two places: an autocorrelation tracker in the
+ * browser, and the Python worker's neural pitch model (SwiftF0) streamed back
+ * as the "Server pitch" readout when the worker is running. The deeper measures
+ * described here, such as jitter, shimmer, breathiness, register
+ * classification, dysphonia risk, and aesthetic scoring, are still PLANNED and
+ * are taught as "what to listen for", not as a current Sime score. Mark that
+ * split with `note` whenever a section leans on an unbuilt measure.
+ */
+
+export interface StudyTable {
+  headers: string[];
+  rows: string[][];
+}
+
+export interface StudySection {
+  heading: string;
+  body?: string[];
+  bullets?: string[];
+  table?: StudyTable;
+  /** Honesty callout: what is live now vs planned. */
+  note?: string;
+}
+
+export type StudyCategory = 'Foundations' | 'Technique' | 'Science' | 'Your voice' | 'Health';
+
+export interface StudyArticle {
+  slug: string;
+  title: string;
+  summary: string;
+  readMin: number;
+  category: StudyCategory;
+  sections: StudySection[];
+}
+
+export const studyCategoryOrder: StudyCategory[] = [
+  'Foundations',
+  'Technique',
+  'Your voice',
+  'Science',
+  'Health',
+];
+
+const PITCH_ONLY_NOTE =
+  'Sime measures pitch and cents live, in your browser and through the server pitch model. The finer measures here are not built yet, so use them as things to listen and feel for, not as a current score.';
+
+export const studyArticles: StudyArticle[] = [
+  {
+    slug: 'anatomy',
+    title: 'How your voice works',
+    summary:
+      'The three systems behind every note: the breath that powers it, the vocal folds that vibrate, and the spaces that amplify it.',
+    readMin: 6,
+    category: 'Foundations',
+    sections: [
+      {
+        heading: 'Three systems, one instrument',
+        body: [
+          'Your voice is not one organ but three systems working together. A power system (the breath) drives air upward. A vibrator (the vocal folds in the larynx) chops that air into a buzzing tone. A resonator (the throat, mouth, and nose) shapes that buzz into the rich sound a listener hears.',
+          'Almost every vocal fault traces back to one of these three. Weak power gives shaky, breathy notes. A tense vibrator gives a pressed or strained tone. A closed resonator gives a dull, muffled sound. Train all three and the voice frees up.',
+        ],
+      },
+      {
+        heading: 'The power: breath, not the chest',
+        body: [
+          'Singing happens on the out-breath. Good support is the skill of slowing the natural collapse of the ribs and the rise of the diaphragm so the air leaves in a steady, controlled stream rather than a rushed dump. The lower belly, the side and back muscles, and the ribs all help meter that flow.',
+          'When support fails, pitch wanders and the tone thins out. Build the breath first, because every other skill rides on it.',
+        ],
+      },
+      {
+        heading: 'The vibrator: two muscles set the pitch',
+        body: [
+          'Pitch is controlled by two opposing muscle groups inside the larynx. The thyroarytenoid (TA) shortens and thickens the folds, giving the heavy, speech-like low range known as chest voice. The cricothyroid (CT) stretches and thins the folds, raising the pitch into head voice.',
+          'The whole art of range and the smooth high note is learning to hand off between these two muscles gradually instead of letting one suddenly drop out, which is what causes a crack.',
+        ],
+      },
+      {
+        heading: 'The resonator: free volume',
+        body: [
+          'Above the folds, the throat and mouth act like the body of a guitar. Tune those spaces well and the tone gets louder and brighter with no extra effort. Shape them poorly and you have to push. Resonance is why a trained singer fills a hall without shouting.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'registers',
+    title: 'Vocal registers',
+    summary:
+      'Chest, head, mix, falsetto, and fry: what each one is mechanically, how it sounds, and where it lives in your range.',
+    readMin: 6,
+    category: 'Foundations',
+    sections: [
+      {
+        heading: 'A register is a gear',
+        body: [
+          'A register is a way the vocal folds vibrate, a bit like a gear in a car. As pitch climbs, the mechanism has to re-set to cope. Naming the gears lets you notice which one you are in and choose it on purpose.',
+        ],
+      },
+      {
+        heading: 'The five gears',
+        table: {
+          headers: ['Register', 'Dominant muscle', 'Sound', 'Where it lives'],
+          rows: [
+            ['Vocal fry', 'TA only', 'Low crackle, very low pitch', 'Below normal singing'],
+            ['Chest voice', 'Mostly TA', 'Thick, heavy, speech-like', 'Low to middle'],
+            ['Mixed voice', 'TA and CT balanced', 'Connected, full but free', 'Across the middle and break'],
+            ['Head voice', 'Mostly CT', 'Lighter, clearer, ringing', 'Upper range'],
+            ['Falsetto', 'CT only, TA released', 'Light, airy, hollow', 'Very high, breathy edge'],
+          ],
+        },
+      },
+      {
+        heading: 'Breathy is not a register',
+        body: [
+          'Falsetto is a specific gear where the TA muscle switches off and the folds do not fully close. Breathiness, on the other hand, is a texture you can add at any pitch by letting the folds stay slightly open so air escapes as a hiss. You can sing a breathy chest note or a clean falsetto note. Do not confuse the two.',
+        ],
+        note: PITCH_ONLY_NOTE,
+      },
+      {
+        heading: 'Why this matters for practice',
+        body: [
+          'When a beginner reaches for a high note by dragging chest voice up, the TA muscle refuses to let go and the voice cracks or strains. The fix is not more force, it is handing pitch control to the CT muscle and learning the mixed voice, which sits between the two.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'ear-training',
+    title: 'Ear training and pitch perception',
+    summary:
+      'Why almost nobody is truly tone deaf, how interval hearing works, and a drill plan that uses the tools Sime already has live.',
+    readMin: 6,
+    category: 'Foundations',
+    sections: [
+      {
+        heading: 'The tone deafness myth',
+        body: [
+          'True tone deafness (congenital amusia, the inability to hear that two pitches differ) is rare, affecting only a few percent of people. What most "tone deaf" singers actually have is an untrained link between ear and voice: they hear the note fine but have not yet learned to steer the voice onto it. That link is a skill, and it trains like any other.',
+          'This is why ear work comes first on the roadmap. You cannot correct a note you cannot hear, and every other technique assumes you can tell sharp from flat.',
+        ],
+      },
+      {
+        heading: 'Audiation: hearing it before you sing it',
+        body: [
+          'Strong singers hear the next note in their head before it leaves their mouth. That inner hearing is called audiation. The practical habit: before you sing a target note, pause and imagine it clearly, then sing. If you cannot imagine it, play it again. Skipping this step is the single most common reason matching drills stall.',
+        ],
+      },
+      {
+        heading: 'Intervals: the alphabet of melody',
+        body: [
+          'An interval is the distance between two notes, counted in semitones. Melodies are built from a small set of them, so learning to recognise and sing intervals lets you learn songs faster and stay in tune mid-phrase, not just on isolated notes.',
+        ],
+        table: {
+          headers: ['Interval', 'Semitones', 'Classic anchor'],
+          rows: [
+            ['Unison', '0', 'Matching a drone'],
+            ['Major 2nd', '2', 'The first two notes of a scale'],
+            ['Major 3rd', '4', 'The first leap of a major arpeggio'],
+            ['Perfect 4th', '5', 'A wedding march opening'],
+            ['Perfect 5th', '7', 'A heroic theme opening'],
+            ['Octave', '12', 'Same note name, doubled in height'],
+          ],
+        },
+      },
+      {
+        heading: 'How to drill it with Sime',
+        bullets: [
+          'Match single notes in the Pitch test: imagine the tone first, sing, then read the cents bar and adjust.',
+          'Use Ear training for intervals: hear the pair, sing both notes, then name the distance before checking.',
+          'Slide between two notes slowly in Practice and watch the live pitch line: the goal is landing without searching.',
+          'Keep sessions short and daily. Ten focused minutes beats an hour of tired guessing.',
+        ],
+        note: 'Pitch matching is fully live in Sime today, in the browser and through the server pitch model. Interval naming is self-checked: Sime confirms the pitches you sing, you train the recognition.',
+      },
+    ],
+  },
+  {
+    slug: 'breath',
+    title: 'Breath and support',
+    summary:
+      'The diaphragm myth, subglottic pressure, and the balance called flow phonation that sits between breathy and pressed.',
+    readMin: 6,
+    category: 'Foundations',
+    sections: [
+      {
+        heading: 'The diaphragm myth',
+        body: [
+          'You will hear "sing from the diaphragm". As a feeling it is useful, as anatomy it is misleading. The diaphragm only does one thing: it contracts and drops to pull air in. It plays no active role in pushing air out.',
+          'What teachers call support is the controlled release on the out-breath: using the belly, side, and rib muscles to resist the air rushing out all at once, so it leaves slowly and evenly.',
+        ],
+      },
+      {
+        heading: 'Subglottic pressure',
+        body: [
+          'Below the closed vocal folds, air pressure builds up. This subglottic pressure is what blows the folds into vibration and sets your loudness. Higher notes stretch the folds tighter, so they need more pressure to sound, which is one reason high singing feels like more work.',
+        ],
+      },
+      {
+        heading: 'The balance: flow phonation',
+        body: [
+          'Healthy tone is a balance between that air pressure and how firmly the folds resist it. Too much air with loose folds gives a breathy, leaky sound. Too much squeeze with little air gives a pressed, harsh sound. The sweet spot, where air turns most efficiently into tone, is called flow phonation.',
+        ],
+        bullets: [
+          'Breathy: folds too open, air wasted, tone weak and hissy.',
+          'Pressed: folds clamped, throat works too hard, tone harsh.',
+          'Flow: balanced, free, ringing, sustainable.',
+        ],
+        note: 'A worker measuring the harmonics-to-noise ratio (HNR) could score this balance, but that analysis is planned, not live. For now, judge it by sound and by how easy the note feels.',
+      },
+    ],
+  },
+  {
+    slug: 'resonance-vowels',
+    title: 'Resonance, vowels, and placement',
+    summary:
+      'Why vowels are the shape of your sound, the Italian vowel ladder, forward placement, and an intro to vowel modification.',
+    readMin: 6,
+    category: 'Technique',
+    sections: [
+      {
+        heading: 'Vowels are resonance shapes',
+        body: [
+          'Every vowel is just a different shape of the throat and mouth, which emphasises different overtones in your buzz. That is why "ee" sounds bright and "oo" sounds dark on the very same pitch. Learning to sing is largely learning to shape clean, consistent, ringing vowels.',
+        ],
+      },
+      {
+        heading: 'The Italian vowel ladder',
+        body: [
+          'Classical training uses five pure Italian vowels as a reference, because they are clean and easy to tune: /i/ (ee), /e/ (eh), /a/ (ah), /o/ (oh), /u/ (oo). A common drill sings a five-note scale on each.',
+          'Many teachers start on /i/ (ee) because it naturally places the sound forward, toward a bright buzz in the front of the face, which is what carries.',
+        ],
+      },
+      {
+        heading: 'Forward placement',
+        body: [
+          'Placement is a feeling, not a real location: aiming the sound toward the front of the face so it rings rather than sitting back in the throat and going dull. Humming until your lips buzz, then opening to a vowel while keeping that buzz, is the classic way to find it.',
+        ],
+      },
+      {
+        heading: 'Vowel modification (intro)',
+        body: [
+          'As you sing higher, holding a wide-open vowel like "ah" makes the voice want to crack. Subtly rounding it toward a more closed, neutral vowel (toward "oh" or "uh") near the top keeps the tone connected. This is vowel modification, and it is the key trick for the passaggio. See the passaggio article for how to apply it.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'passaggio-mix',
+    title: 'The passaggio and mixed voice',
+    summary:
+      'The break explained as a muscular handoff, why mixed voice is a coordination not a place, and the exercises that build it.',
+    readMin: 7,
+    category: 'Technique',
+    sections: [
+      {
+        heading: 'The break is a handoff',
+        body: [
+          'The passaggio, or break, is the zone where pitch control passes from the TA muscle (chest) to the CT muscle (head). Handled badly, the TA suddenly lets go and the voice flips or cracks. Handled well, the handoff is gradual and invisible.',
+        ],
+      },
+      {
+        heading: 'Mixed voice is a coordination',
+        body: [
+          'Mixed voice is not a separate place in your throat. It is the result of keeping a little of the TA fold closure while the CT does most of the stretching, plus tuning your resonance to match. Done right, you can glide from low to high with no sudden jump in weight or volume.',
+        ],
+      },
+      {
+        heading: 'Vowel modification through the break',
+        body: [
+          'The single most useful trick: as you approach the break, round the vowel toward a closed or neutral shape ("oo" or "oh" or "uh") instead of a wide "ah". This keeps the tone from spreading and breaking. Exercises that build in a gentle consonant resistance, like "nay", "gug", or "nee", make the coordination easier to find.',
+        ],
+      },
+      {
+        heading: 'How to drill it',
+        bullets: [
+          'Octave sirens on "ng" or "wee", light and even, through the break and back.',
+          '"Nay-nay-nay" or "gug" five-note scales straddling your break.',
+          'Slow the tempo right down so you can hear exactly which note flips, then drill around it.',
+        ],
+        note: 'A future worker could classify chest vs mix vs head from the spectrum in real time. Today, watch the live pitch line for a sudden jump and judge weight and strain by feel.',
+      },
+    ],
+  },
+  {
+    slug: 'sovt',
+    title: 'SOVT warm-ups',
+    summary:
+      'Semi-occluded vocal tract exercises (lip trills, straws, humming): the backpressure science and a 10 to 15 minute routine.',
+    readMin: 5,
+    category: 'Technique',
+    sections: [
+      {
+        heading: 'What SOVT means',
+        body: [
+          'A semi-occluded vocal tract exercise narrows the exit of the sound, by trilling the lips, humming, or singing through a straw. This is the gold-standard way to warm up, because it is gentle and it sets up good coordination automatically.',
+        ],
+      },
+      {
+        heading: 'Why backpressure helps',
+        body: [
+          'Narrowing the exit sends a cushion of air pressure back down toward the vocal folds. That backpressure balances the pressure below the folds, so they vibrate freely without you having to squeeze with neck muscles. It lowers the effort needed to make sound and protects the folds from hard impact.',
+        ],
+      },
+      {
+        heading: 'A 10 to 15 minute routine',
+        bullets: [
+          'Humming: major scales up and down, one octave, easy and forward (2 to 3 min).',
+          'Lip trills: slide from low to high and back, keeping the buzz unbroken (3 to 4 min).',
+          'Straw phonation: glide gently through your whole range into a thin straw or cup (3 to 4 min).',
+          'Open up: move the same slides onto an open vowel, keeping the easy feeling (2 to 3 min).',
+        ],
+      },
+      {
+        heading: 'What to watch',
+        body: [
+          'The goal is an unbroken sound across your whole range. If the pitch line breaks up during a slide, your air or fold closure is unstable there. Stay light and repeat until it smooths out before moving to full singing.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'voice-types',
+    title: 'Find your range and voice type',
+    summary:
+      'Scientific pitch notation, the standard voice-type ranges, and the Fach plus Kim and Tho colour system Sime uses.',
+    readMin: 6,
+    category: 'Your voice',
+    sections: [
+      {
+        heading: 'How notes are named',
+        body: [
+          'Sime uses scientific pitch notation: a letter plus an octave number, like C4 (middle C) or A2. Each step up in number is one octave higher. Your range is the span from your lowest stable note to your highest stable note, ignoring the unstable creak at the very bottom and the strain at the very top.',
+        ],
+      },
+      {
+        heading: 'The standard voice types',
+        table: {
+          headers: ['Voice type', 'Typical range', 'Group'],
+          rows: [
+            ['Bass', 'E2 to E4', 'Male, lowest'],
+            ['Baritone', 'A2 to A4', 'Male, most common'],
+            ['Tenor', 'C3 to C5', 'Male, highest'],
+            ['Contralto / Alto', 'F3 to F5', 'Female, lowest'],
+            ['Mezzo-Soprano', 'A3 to A5', 'Female, middle'],
+            ['Soprano', 'C4 to C6', 'Female, highest'],
+          ],
+        },
+      },
+      {
+        heading: 'Colour: Kim and Tho',
+        body: [
+          'Beyond range, Sime borrows two terms from Eastern vocal tradition to describe colour. Kim is a bright, clear, metallic, agile tone, typical of higher voices. Tho is a warm, dark, grounded, powerful tone, typical of lower voices. Most singers lean one way but can shade both.',
+          'Voice type is not a cage. Its only job is to match you to songs and exercises that suit your instrument, so you build skill without strain.',
+        ],
+        note: 'Sime classifies type and colour from the range you sing in (see the Studio). Richer timbre analysis from a deep-learning model is planned, not live.',
+      },
+    ],
+  },
+  {
+    slug: 'transpose',
+    title: 'Choosing your key (Smart Transpose)',
+    summary:
+      'Tessitura, the ideal one to two semitone shift, the four-semitone safety limit, and why formant preservation matters.',
+    readMin: 5,
+    category: 'Your voice',
+    sections: [
+      {
+        heading: 'The problem: wrong key, hurt voice',
+        body: [
+          'The most common way self-taught singers strain is by forcing a song written for a different voice. A baritone belting a tenor song in the original key is reaching for notes above a safe range. The fix is to move the whole song into your range.',
+        ],
+      },
+      {
+        heading: 'Match the tessitura, not just the peak',
+        body: [
+          'Tessitura is where most of a song sits, not its single highest note. A song can have one high note you rarely touch but a comfortable body. Sime looks at the tessitura and your range together to pick a key where the bulk of the song sits in your comfortable zone.',
+        ],
+      },
+      {
+        heading: 'How far to shift',
+        bullets: [
+          'One to two semitones is the usual sweet spot: it relieves the strain while keeping the spirit of the song.',
+          'Four semitones is the safety limit. Shift further and pitch-shifting software starts to distort the backing track.',
+          'Formant preservation keeps a shifted guide vocal sounding human rather than like a chipmunk, by shifting pitch without squashing the vowel shapes.',
+        ],
+        note: 'This logic already exists in the backend (range, transposition, and the coaching payload). The live audio worker that scores a full take is still planned.',
+      },
+    ],
+  },
+  {
+    slug: 'metrics',
+    title: 'How singing is measured',
+    summary:
+      'Cents and pitch accuracy (live now), plus jitter, shimmer, and HNR (planned): what each number really tells you.',
+    readMin: 6,
+    category: 'Science',
+    sections: [
+      {
+        heading: 'Cents and pitch accuracy',
+        body: [
+          'Pitch error is measured in cents, where 100 cents is one semitone. Sime shows you the nearest note and how many cents sharp (high) or flat (low) you are. A strong singer keeps most notes within a few cents of centre; past about 50 cents a note reads as clearly out of tune. This is the one measure Sime computes live.',
+        ],
+      },
+      {
+        heading: 'Jitter and shimmer',
+        table: {
+          headers: ['Measure', 'What varies', 'Healthy', 'A problem when'],
+          rows: [
+            ['Jitter', 'Pitch, cycle to cycle', 'around 0.3%', 'above ~0.9%: shaky, tense'],
+            ['Shimmer', 'Loudness, cycle to cycle', 'around 3%', 'above ~6%: breathy, weak closure'],
+          ],
+        },
+        body: [
+          'Tiny cycle-to-cycle wobbles in pitch (jitter) and loudness (shimmer) reveal control and fold health that a pitch number alone misses. High jitter points to a tense, unsteady tone. High shimmer points to a breathy, leaky one.',
+        ],
+      },
+      {
+        heading: 'Harmonics-to-noise ratio',
+        body: [
+          'HNR compares the clean, tuned part of your sound to the hissy, noisy part. A high HNR means a clear, well-closed tone. A low HNR means air is leaking through as noise. It is a good single proxy for how clean your phonation is.',
+        ],
+        note: 'Jitter, shimmer, and HNR need the planned Python worker. They are not live in Sime yet. Use them as concepts that explain what you hear.',
+      },
+      {
+        heading: 'Style sets the threshold',
+        body: [
+          'There is no single pass mark. Opera tolerates far more amplitude variation than clean pop. A good system, and a good ear, judges these numbers against the style being sung rather than one fixed rule.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'analysis-tech',
+    title: 'How Sime analyzes your voice',
+    summary:
+      'What runs in your browser today, the deeper models on the roadmap, and how your audio is handled.',
+    readMin: 6,
+    category: 'Science',
+    sections: [
+      {
+        heading: 'Today: pitch in the browser',
+        body: [
+          'Right now, Sime detects pitch in your browser with an autocorrelation method over the microphone signal, then maps the frequency to the nearest note and a cents offset. It is fast and private, and it is honest about its limits: it tracks one steady pitch at a time and does not judge tone, breath, or technique.',
+        ],
+      },
+      {
+        heading: 'On the roadmap: deep models',
+        body: [
+          'The planned architecture adds a Python worker running stronger pitch models, chosen by task: a fast model for real-time feedback, a robust model for singing over a backing track, and a high-accuracy model for offline deep analysis. Dynamic time warping would align your take to a reference so timing slips are not scored as wrong notes.',
+        ],
+        bullets: [
+          'Real-time core: a lightweight model for live on-screen feedback.',
+          'Over backing tracks: a model that finds your voice inside the music.',
+          'Deep analysis: a heavy, high-accuracy model for end-of-session reports.',
+          'Alignment: dynamic time warping for fair, tempo-tolerant scoring.',
+        ],
+      },
+      {
+        heading: 'The AI coach',
+        body: [
+          'Planned coaching turns the cold numbers into plain, kind guidance through a language model, with a strict safety-first brief: never quote raw deviations, always translate faults into images and exercises, and tell you to rest when strain risk appears.',
+        ],
+        note: 'The worker, the deep models, and the live AI coach are planned (see PLANS.md and TASKS.md). The browser pitch readout is what is live today.',
+      },
+      {
+        heading: 'Your audio',
+        body: [
+          'The live pitch readout runs entirely in your browser and is not recorded or uploaded. When a signed-in session streams short frames to the worker bridge, only what you submit is sent. Nothing is shared.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'health',
+    title: 'Vocal health and safety',
+    summary:
+      'How to spot strain early, the difference between safe and unsafe effort, and the habits that protect your instrument.',
+    readMin: 5,
+    category: 'Health',
+    sections: [
+      {
+        heading: 'The first rule',
+        body: [
+          'Singing should never hurt. Pain, a scratchy throat, or a hoarse voice after practice are signals to stop, not to push through. The voice is built from delicate tissue, and damage from forcing can take weeks to heal.',
+        ],
+      },
+      {
+        heading: 'Strain warning signs',
+        bullets: [
+          'Throat tightness, squeezing, or a sense of effort high in the neck.',
+          'A note that suddenly turns harsh, pressed, or cuts out.',
+          'Hoarseness, a tickle, or a weaker voice the morning after.',
+          'Reaching for high notes by lifting the chin and pushing.',
+        ],
+      },
+      {
+        heading: 'Safe effort vs unsafe effort',
+        body: [
+          'Hard work is fine. A loud, supported high note takes real energy. The difference is where the work happens: safe effort is felt as breath support low in the body, unsafe effort is felt as squeezing in the throat. Learn to tell them apart.',
+        ],
+      },
+      {
+        heading: 'Habits that protect the voice',
+        bullets: [
+          'Warm up with SOVT before singing hard, and cool down after.',
+          'Stay hydrated; the folds need moisture to vibrate freely.',
+          'Sing in a key that fits your range (use Smart Transpose).',
+          'Rest when tired or unwell; never train through pain.',
+        ],
+        note: 'A planned clinical layer could score dysphonia risk and tell you to stop automatically. Until then, you are the safety system: listen to your body.',
+      },
+    ],
+  },
+  {
+    slug: 'roadmap',
+    title: 'The learning roadmap',
+    summary:
+      'The five stages from a first diagnostic to artistry, and how Sime supports each one.',
+    readMin: 5,
+    category: 'Foundations',
+    sections: [
+      {
+        heading: 'Stage 1: Diagnose',
+        body: [
+          'Start by mapping the instrument. Find your range, your voice type and colour, and test your pitch accuracy by matching notes. Everything after this is personalised to what you find here.',
+        ],
+      },
+      {
+        heading: 'Stage 2: Balance with SOVT',
+        body: [
+          'Set up healthy coordination with semi-occluded warm-ups (lip trills, straws, humming) before any heavy singing. This builds the foundation safely.',
+        ],
+      },
+      {
+        heading: 'Stage 3: Clean technique',
+        body: [
+          'Build a clear, supported tone on open vowels, with forward placement, while keeping the breath steady. The aim is a sound that is in tune and free, with no pulling chest up too high.',
+        ],
+      },
+      {
+        heading: 'Stage 4: Master the passaggio',
+        body: [
+          'Tackle the break: connect chest and head into a smooth mixed voice using vowel modification and resistance exercises. This is the biggest single unlock for range and power.',
+        ],
+      },
+      {
+        heading: 'Stage 5: Artistry',
+        body: [
+          'With the instrument stable, refine vibrato, dynamics, phrasing, and interpretation. This is where technique becomes music and a singer becomes a diva or divo.',
+        ],
+        note: 'Stages 3 to 5 lean on tone and aesthetic judgement that the planned worker and AI coach would score. Today, Sime keeps your pitch honest and the lessons teach you to judge the rest.',
+      },
+    ],
+  },
+];
+
+export function getStudyArticle(slug: string): StudyArticle | undefined {
+  return studyArticles.find((article) => article.slug === slug);
+}
+
+// Lesson id -> related study article slugs. Powers "Go deeper" on a lesson.
+export const lessonStudyLinks: Record<string, string[]> = {
+  'breath-support': ['breath', 'sovt', 'anatomy'],
+  posture: ['anatomy', 'breath'],
+  'pitch-matching': ['metrics', 'analysis-tech'],
+  'resonance-basics': ['resonance-vowels', 'sovt'],
+  'mixed-voice': ['passaggio-mix', 'registers', 'resonance-vowels'],
+  belting: ['passaggio-mix', 'registers', 'health'],
+  vibrato: ['metrics', 'health'],
+  agility: ['resonance-vowels', 'metrics'],
+  phrasing: ['resonance-vowels', 'roadmap'],
+  'stage-presence': ['health', 'roadmap'],
+  'mic-technique': ['analysis-tech', 'metrics'],
+  interpretation: ['roadmap', 'voice-types'],
+  'onset-control': ['breath', 'anatomy', 'sovt'],
+  'vowels-formants': ['resonance-vowels', 'analysis-tech'],
+  'passaggio-bridging': ['passaggio-mix', 'registers', 'voice-types'],
+  'runs-riffs': ['ear-training', 'metrics'],
+  'vocal-health': ['health', 'sovt', 'anatomy'],
+  'avoid-strain': ['health', 'sovt', 'breath'],
+};
+
+export function studyLinksForLesson(lessonId: string): { slug: string; title: string }[] {
+  const slugs = lessonStudyLinks[lessonId] ?? [];
+  return slugs
+    .map((slug) => getStudyArticle(slug))
+    .filter((a): a is StudyArticle => Boolean(a))
+    .map((a) => ({ slug: a.slug, title: a.title }));
+}
